@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Starlight Twins - Official Content Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to enhance the sci-fi/book theme */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0d19; /* Dark Navy/Space Black */
+            color: #e5e7eb;
+        }
+        .header-bg {
+            background-color: #1a1b32; /* Deep violet accent */
+            border-bottom: 2px solid #4f46e5;
+        }
+        .section-card {
+            background-color: #18192d;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            border: 1px solid #2e2f4a;
+        }
+        .btn-primary {
+            background-color: #6366f1; /* Indigo */
+            color: white;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #4f46e5;
+            transform: translateY(-1px);
+        }
+        .news-link {
+            transition: transform 0.2s;
+        }
+        .news-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        }
+        .input-style {
+            background-color: #1f2038;
+            border: 1px solid #4f46e5;
+            color: white;
+        }
+        /* Custom scrollbar for themed appearance */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #1f2038; }
+    </style>
+
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, orderBy, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- Global Firebase Setup Variables ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db;
+        let auth;
+        let userId = 'loading';
+        let isAuthReady = false;
+
+        // Set log level for debugging Firebase operations
+        setLogLevel('Debug');
+
+        // Helper function for Firestore paths
+        const getPublicCollectionPath = (collectionName) => {
+            return `/artifacts/${appId}/public/data/${collectionName}`;
+        };
+
+        // --- Core Initialization & Auth ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase config is missing. Data persistence will not work.");
+                    return;
+                }
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Sign in logic
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-id-display').textContent = `User ID: ${userId}`;
+                        isAuthReady = true;
+                        
+                        // Start real-time listeners only after auth is ready
+                        initClock();
+                        initVisitorCounter();
+                        initComments();
+                    } else {
+                        console.log("No user signed in.");
+                        isAuthReady = true;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization or sign-in failed:", error);
+                // Fallback to show the error
+                document.getElementById('visitor-count').textContent = 'Error loading counter.';
+                document.getElementById('user-id-display').textContent = 'Auth Error.';
+            }
+        });
+
+        // --- Clock and Date/Time ---
+        function initClock() {
+            const clockElement = document.getElementById('digital-clock');
+            const updateClock = () => {
+                const now = new Date();
+                const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+                const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                const dateStr = now.toLocaleDateString(undefined, dateOptions);
+                const timeStr = now.toLocaleTimeString(undefined, timeOptions);
+                clockElement.textContent = `${dateStr} | ${timeStr}`;
+            };
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        // --- Visitor Counter Logic (Public Data) ---
+        const VISITOR_DOC_ID = 'website_visitors';
+        const initVisitorCounter = async () => {
+            if (!isAuthReady || !db) return;
+
+            const counterRef = doc(db, getPublicCollectionPath('metrics'), VISITOR_DOC_ID);
+            const counterElement = document.getElementById('visitor-count');
+            
+            // 1. Increment Count (using a transaction-like approach for simplicity)
+            try {
+                const docSnap = await getDoc(counterRef);
+                let currentCount = 0;
+                if (docSnap.exists()) {
+                    currentCount = docSnap.data().count || 0;
+                }
+                // Check if the user ID has visited before (using session storage as a proxy)
+                const sessionKey = `visited_${appId}_${userId}`;
+                if (!sessionStorage.getItem(sessionKey)) {
+                    currentCount += 1;
+                    await setDoc(counterRef, { count: currentCount });
+                    sessionStorage.setItem(sessionKey, 'true'); // Mark as visited
+                }
+            } catch (error) {
+                console.error("Failed to increment visitor count:", error);
+            }
+
+            // 2. Real-time Listener for Display
+            onSnapshot(counterRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const count = docSnap.data().count || 0;
+                    counterElement.textContent = count.toLocaleString();
+                } else {
+                    counterElement.textContent = '0';
+                    // Initialize document if it doesn't exist
+                    setDoc(counterRef, { count: 0 }).catch(e => console.error("Error setting initial count:", e));
+                }
+            }, (error) => {
+                console.error("Visitor count snapshot error:", error);
+                counterElement.textContent = 'Error';
+            });
+        };
+
+        // --- Comments Logic (Public Data) ---
+        const COMMENTS_COLLECTION = 'comments';
+
+        const submitComment = async () => {
+            if (!isAuthReady || !db) {
+                alertModal("Error: System not ready. Please wait for initialization.", "error");
+                return;
+            }
+
+            const commentText = document.getElementById('comment-input').value.trim();
+            if (!commentText) {
+                alertModal("Comment cannot be empty.", "warning");
+                return;
+            }
+
+            const username = document.getElementById('username-input').value.trim() || `Anon-${userId.substring(0, 8)}`;
+            
+            // Custom alert box instead of window.alert()
+            document.getElementById('comment-input').value = ''; // Clear input
+
+            try {
+                await addDoc(collection(db, getPublicCollectionPath(COMMENTS_COLLECTION)), {
+                    username: username,
+                    text: commentText,
+                    timestamp: Date.now()
+                });
+                alertModal("Comment posted!", "success");
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                alertModal("Error posting comment. See console.", "error");
+            }
+        };
+
+        const initComments = () => {
+            if (!isAuthReady || !db) return;
+
+            const commentsContainer = document.getElementById('comments-container');
+            const q = query(collection(db, getPublicCollectionPath(COMMENTS_COLLECTION)));
+            
+            onSnapshot(q, (snapshot) => {
+                commentsContainer.innerHTML = '';
+                let comments = [];
+                snapshot.forEach((doc) => {
+                    comments.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sort comments newest first (sorted in memory to avoid firestore index issues)
+                comments.sort((a, b) => b.timestamp - a.timestamp);
+                
+                comments.forEach(comment => {
+                    const date = new Date(comment.timestamp);
+                    const dateString = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+
+                    const commentDiv = document.createElement('div');
+                    commentDiv.className = 'flex flex-col p-3 my-2 border-b border-gray-700 hover:bg-gray-800 transition rounded-lg';
+                    commentDiv.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-semibold text-indigo-300 text-sm">${comment.username}</span>
+                            <span class="text-xs text-gray-500">${dateString}</span>
+                        </div>
+                        <p class="text-sm text-gray-300">${comment.text}</p>
+                    `;
+                    commentsContainer.appendChild(commentDiv);
+                });
+            }, (error) => {
+                console.error("Comments snapshot error:", error);
+            });
+
+            document.getElementById('submit-comment-btn').onclick = submitComment;
+        };
+
+        // --- Content Management Logic (Simple Mockup using In-Memory State) ---
+        let dynamicContent = {
+            'storybook': [
+                { id: 1, title: 'Part 1: The Twin Revelation', url: '#', type: 'Chapter' },
+                { id: 2, title: 'Part 2: The Rogue AI', url: '#', type: 'Chapter' }
+            ],
+            'shortvideo': [
+                { id: 3, title: 'Release 1: The Author Hook', url: '#', type: 'TikTok' },
+                { id: 4, title: 'Release 2: Assault on Voyager', url: '#', type: 'TikTok' }
+            ],
+             'longvideo': [
+                { id: 5, title: 'Trailer 1: Cinematic Reveal', url: '#', type: 'YouTube' }
+            ]
+        };
+        let contentIdCounter = 6;
+
+        const renderContent = (section, containerId) => {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            dynamicContent[section].forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-center justify-between p-3 bg-gray-700 rounded-lg mb-2';
+                itemDiv.innerHTML = `
+                    <a href="${item.url}" target="_blank" class="text-indigo-300 hover:text-indigo-400 font-medium">${item.title} (${item.type})</a>
+                    <button data-id="${item.id}" data-section="${section}" class="delete-content-btn bg-red-600 hover:bg-red-700 text-xs text-white px-2 py-1 rounded">Delete</button>
+                `;
+                container.appendChild(itemDiv);
+            });
+            // Attach delete listeners
+            container.querySelectorAll('.delete-content-btn').forEach(button => {
+                button.onclick = handleDeleteContent;
+            });
+        };
+
+        const handleAddContent = (section, containerId) => {
+            const title = prompt(`Enter title for new ${section} item:`);
+            if (title) {
+                dynamicContent[section].push({
+                    id: contentIdCounter++,
+                    title: title,
+                    url: prompt("Enter URL link:") || '#',
+                    type: section.includes('video') ? (section === 'shortvideo' ? 'TikTok' : 'YouTube') : 'Chapter'
+                });
+                renderContent(section, containerId);
+            }
+        };
+
+        const handleDeleteContent = (event) => {
+            const button = event.target;
+            const id = parseInt(button.dataset.id);
+            const section = button.dataset.section;
+
+            dynamicContent[section] = dynamicContent[section].filter(item => item.id !== id);
+            renderContent(section, button.closest('.content-list').id);
+        };
+
+        // Initialize content render on load (after Firebase setup)
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup dynamic content management buttons
+            document.getElementById('add-storybook-btn').onclick = () => handleAddContent('storybook', 'storybook-list');
+            document.getElementById('add-shortvideo-btn').onclick = () => handleAddContent('shortvideo', 'shortvideo-list');
+            document.getElementById('add-longvideo-btn').onclick = () => handleAddContent('longvideo', 'longvideo-list');
+
+            // Render initial content
+            renderContent('storybook', 'storybook-list');
+            renderContent('shortvideo', 'shortvideo-list');
+            renderContent('longvideo', 'longvideo-list');
+        });
+
+        // --- Utility for custom alert/modal ---
+        function alertModal(message, type) {
+            const modal = document.getElementById('custom-modal');
+            const messageElement = document.getElementById('modal-message');
+            const header = document.getElementById('modal-header');
+
+            modal.classList.remove('hidden');
+            messageElement.textContent = message;
+
+            // Styling based on type
+            if (type === 'success') {
+                header.textContent = 'Success';
+                header.className = 'text-lg font-bold text-green-400';
+            } else if (type === 'error') {
+                header.textContent = 'Error';
+                header.className = 'text-lg font-bold text-red-400';
+            } else {
+                header.textContent = 'Information';
+                header.className = 'text-lg font-bold text-yellow-400';
+            }
+
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 3000);
+        }
+
+        window.closeModal = () => {
+            document.getElementById('custom-modal').classList.add('hidden');
+        };
+
+        window.submitComment = submitComment;
+    </script>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Custom Modal for Alerts (Instead of alert()) -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
+        <div class="bg-gray-900 p-6 rounded-xl section-card max-w-sm w-full space-y-3">
+            <h3 id="modal-header" class="text-lg font-bold text-white">Message</h3>
+            <p id="modal-message" class="text-gray-300"></p>
+            <button onclick="closeModal()" class="w-full py-2 btn-primary rounded-lg text-sm">Close</button>
+        </div>
+    </div>
+
+    <!-- Header & Stats Bar -->
+    <header class="header-bg sticky top-0 z-10 py-4 shadow-2xl rounded-b-xl">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center px-4 space-y-3 md:space-y-0">
+            <h1 class="text-4xl font-extrabold text-indigo-400 font-['Orbitron'] tracking-wider">STARLIGHT TWINS HUB</h1>
+            
+            <div class="flex space-x-4 text-sm font-medium">
+                <div class="flex items-center space-x-2 p-2 bg-gray-800 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l3 3a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd" />
+                    </svg>
+                    <span id="digital-clock" class="text-yellow-400">Loading...</span>
+                </div>
+                <div class="flex items-center space-x-2 p-2 bg-gray-800 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-gray-300">Visitors:</span>
+                    <span id="visitor-count" class="text-yellow-400 font-bold">...</span>
+                </div>
+            </div>
+        </div>
+        <div id="user-id-display" class="max-w-7xl mx-auto px-4 text-xs text-gray-500 mt-2 truncate">User ID: loading...</div>
+    </header>
+
+    <main class="max-w-7xl mx-auto py-8 px-4">
+
+        <!-- Search Strip (Linked to Google Search) -->
+        <section class="mb-8 section-card p-6">
+            <h2 class="text-xl font-semibold mb-3 text-indigo-300">Sci-Fi Research Terminal</h2>
+            <form action="https://www.google.com/search" method="GET" target="_blank" class="flex space-x-2">
+                <input type="text" name="q" placeholder="Search the web for AI, Sci-Fi, or military tech..." class="flex-grow p-3 input-style rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                <button type="submit" class="btn-primary px-6 rounded-lg font-semibold">
+                    Search Google
+                </button>
+            </form>
+            <p class="text-xs text-gray-500 mt-2">Use this to research concepts or check real-world news (linked to Google search).</p>
+        </section>
+
+        <!-- Main Content Sections: Storybook, Video, Merchandise -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            
+            <!-- 1. Storybook Section -->
+            <section class="section-card p-6 lg:col-span-1">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-indigo-300">The Starlight Twins: Part 1</h2>
+                    <button id="add-storybook-btn" class="btn-primary text-sm px-3 py-1 rounded">Add Chapter</button>
+                </div>
+                <div id="storybook-list" class="content-list max-h-96 overflow-y-auto">
+                    <!-- Content populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- 2. Video Content Section -->
+            <section class="section-card p-6 lg:col-span-1 space-y-6">
+                <h2 class="text-2xl font-bold text-indigo-300">Video Releases & Trailers</h2>
+                
+                <!-- Short Video Section -->
+                <div class="border-b border-gray-700 pb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xl font-semibold text-gray-200">Short Form Videos (TikTok/Reels)</h3>
+                        <button id="add-shortvideo-btn" class="btn-primary text-xs px-2 py-1 rounded">Add Short Video</button>
+                    </div>
+                    <div id="shortvideo-list" class="content-list">
+                        <!-- Content populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Long Video Section -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xl font-semibold text-gray-200">Long Form Content (YouTube)</h3>
+                        <button id="add-longvideo-btn" class="btn-primary text-xs px-2 py-1 rounded">Add Long Video</button>
+                    </div>
+                    <div id="longvideo-list" class="content-list">
+                        <!-- Content populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Merchandise & Checkout Mockup -->
+            <section class="section-card p-6 lg:col-span-1">
+                <h2 class="text-2xl font-bold text-indigo-300 mb-4">Merchandise Terminal</h2>
+                <div class="space-y-4">
+                    <!-- Item 1 -->
+                    <div class="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold">T-12 Phantom Blueprint Poster</p>
+                            <p class="text-green-400">$19.99</p>
+                        </div>
+                        <button class="btn-primary px-4 py-2 text-sm rounded">Add to Cart</button>
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold">Starlight Twins Combat Patch</p>
+                            <p class="text-green-400">$9.50</p>
+                        </div>
+                        <button class="btn-primary px-4 py-2 text-sm rounded">Add to Cart</button>
+                    </div>
+                    
+                    <div class="border-t border-gray-600 pt-4">
+                        <h3 class="text-xl font-bold text-gray-100 mb-2">Checkout Summary</h3>
+                        <div class="flex justify-between text-sm mb-3">
+                            <span>Total Items:</span>
+                            <span class="font-bold text-yellow-400">0</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold">
+                            <span>TOTAL:</span>
+                            <span class="text-green-400">$0.00</span>
+                        </div>
+                        <button class="bg-red-600 hover:bg-red-700 text-white w-full py-3 mt-4 rounded-lg font-semibold">Proceed to Checkout (Mock)</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Visitor Comments & World News -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- 4. World News Links -->
+            <section class="section-card p-6">
+                <h2 class="text-2xl font-bold text-indigo-300 mb-4">Curated World News & Tech</h2>
+                <div class="space-y-3">
+                    <a href="https://www.reuters.com/" target="_blank" class="news-link block p-3 bg-gray-700 rounded-lg text-gray-200 hover:bg-gray-600">1. Global AI Regulation Update</a>
+                    <a href="https://apnews.com/" target="_blank" class="news-link block p-3 bg-gray-700 rounded-lg text-gray-200 hover:bg-gray-600">2. Future of Deep Sea Technology</a>
+                    <a href="https://www.bbc.com/news" target="_blank" class="news-link block p-3 bg-gray-700 rounded-lg text-gray-200 hover:bg-gray-600">3. Geopolitical Tensions & Naval Fleets</a>
+                    <a href="https://www.nytimes.com/" target="_blank" class="news-link block p-3 bg-gray-700 rounded-lg text-gray-200 hover:bg-gray-600">4. Latest in Robotics & Android Development</a>
+                </div>
+                <p class="text-xs text-gray-500 mt-3">These links are placeholders; you can edit the HTML to update the URLs and titles.</p>
+            </section>
+
+            <!-- 5. Collapsible Comments Section (Firestore) -->
+            <section class="section-card p-6">
+                <button type="button" onclick="document.getElementById('comments-body').classList.toggle('hidden')" class="w-full text-left flex justify-between items-center py-2 text-2xl font-bold text-indigo-300">
+                    Visitor Communications Log
+                    <!-- SVG icon for collapse/expand -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform transition" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                
+                <div id="comments-body" class="space-y-4">
+                    <h3 class="text-xl font-semibold mt-3 text-gray-200">Leave a Message</h3>
+                    <input type="text" id="username-input" placeholder="Your Name/Handle (Optional)" class="w-full p-2 input-style rounded-lg text-sm">
+                    <textarea id="comment-input" rows="3" placeholder="Share your thoughts on The Starlight Twins or the content..." class="w-full p-3 input-style rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                    <button id="submit-comment-btn" class="btn-primary w-full py-2 rounded-lg font-semibold">Transmit Data</button>
+
+                    <h3 class="text-xl font-semibold mt-4 text-gray-200 border-t border-gray-700 pt-4">Recent Transmissions</h3>
+                    <div id="comments-container" class="max-h-80 overflow-y-auto">
+                        <p class="text-center text-gray-500 py-4">Loading comments...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="text-center text-gray-500 text-sm py-4 mt-8 border-t border-gray-800">
+        &copy; 2025 The Starlight Twins Content Hub. All rights reserved.
+    </footer>
+
+</body>
+</html>
