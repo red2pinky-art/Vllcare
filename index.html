@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIIcare Solutions | Healthcare Referrals</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #1a3a6b;
+            --teal: #3a9ca8;
+            --light-bg: #f4f7f9;
+            --white: #ffffff;
+            --text: #334155;
+            --youtube-red: #FF0000;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background-color: var(--light-bg);
+            margin: 0;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo-container img { height: 60px; }
+
+        .hero {
+            background: linear-gradient(135deg, var(--navy), var(--teal));
+            color: white;
+            padding: 60px 10%;
+            text-align: center;
+        }
+
+        /* --- Sharing is Caring Grid --- */
+        .sharing-section {
+            padding: 40px 10%;
+            text-align: center;
+            background: #ffffff;
+        }
+
+        .sharing-section h2 { color: var(--navy); margin-bottom: 25px; letter-spacing: 1px; }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 columns */
+            grid-template-rows: repeat(4, 1fr);    /* 4 rows */
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .yt-btn {
+            background-color: var(--youtube-red);
+            color: white;
+            text-decoration: none;
+            padding: 12px 5px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: opacity 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .yt-btn:hover { opacity: 0.8; }
+
+        /* Mobile responsiveness for grid */
+        @media (max-width: 600px) {
+            .video-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* --- Other Styles --- */
+        .section-story { padding: 60px 10%; background: var(--white); }
+        .story-box { max-width: 800px; margin: 0 auto; border-left: 5px solid var(--teal); padding-left: 30px; }
+        
+        .ai-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 40px 10%; }
+        .ai-box { background: var(--white); border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 5px solid var(--navy); }
+        .ai-box.dola { border-top-color: #7c3aed; }
+
+        .how-it-works { padding: 60px 10%; text-align: center; background: #eef2f5; }
+        .steps { display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 30px; }
+        .step-card { background: white; padding: 20px; width: 280px; border-radius: 8px; margin: 10px; border: 1px solid #ddd; }
+
+        .looking-for { padding: 60px 10%; }
+        .grid-9 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .service-card { background: white; padding: 20px; border-radius: 8px; border-bottom: 3px solid var(--teal); }
+
+        .form-section { padding: 60px 10%; text-align: center; }
+        iframe { width: 100%; max-width: 700px; height: 800px; border: none; border-radius: 12px; }
+
+        footer { background: var(--navy); color: white; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo-container">
+        <img src="logo.jpeg" alt="VIIcare Logo">
+    </div>
+    <div><strong>VIIcare Solutions</strong> | By Lim Chee Sin</div>
+</nav>
+
+<section class="hero">
+    <h1>Bridging Care with Organic Intelligence</h1>
+    <p>Professional Lead Coordination for Home Healthcare & Wellness</p>
+</section>
+<section class="section-story">
+    <div class="story-box">
+        <h2>The Day Everything Changed: A Director’s Journey</h2>
+        <p>In May 2025, I faced a "board meeting" that no amount of corporate experience could prepare me for. My 87-year-old mother slipped in our kitchen. From that moment, my life shifted from the boardroom to the sofa next to her bedroom.</p>
+        <p>I realized that caregiving is a world of silent logistics. We struggled with dignity, hygiene, and the sudden need for professional tools. I founded VIIcare because I lived through 12 months of uncertainty. I know the fear of the first fall—and I am here to help you navigate it.</p>
+    </div>
+</section>
+
+<section class="ai-container">
+    <div class="ai-box">
+        <h3>Connect with AI Gemini</h3>
+        <p>Ask Gemini for solutions.</p>
+        <a href="https://gemini.google.com" target="_blank" style="color: var(--teal); font-weight: bold;">Launch Gemini AI →</a>
+    </div>
+    <div class="ai-box dola">
+        <h3>Connect with AI Dola</h3>
+        <p>Dola can also communicate in many languages. Type change to Bahasa Melayu and you can communicate in the language.</p>
+        <a href="https://dola.com" target="_blank" style="color: #7c3aed; font-weight: bold;">Launch Dola AI →</a>
+    </div>
+</section>
+        
+
+<section class="sharing-section">
+    <h2>SHARING IS CARING</h2>
+    <div class="video-grid">
+        <a href="https://youtube.com/shorts/XF20gA8yFz8?si=n-WlBcaRk0uK_2HX" class="yt-btn" target="_blank">Video 1</a>
+        <a href="#" class="yt-btn" target="_blank">Video 2</a>
+        <a href="#" class="yt-btn" target="_blank">Video 3</a>
+        <a href="#" class="yt-btn" target="_blank">Video 4</a>
+        <a href="#" class="yt-btn" target="_blank">Video 5</a>
+        <a href="#" class="yt-btn" target="_blank">Video 6</a>
+        <a href="#" class="yt-btn" target="_blank">Video 7</a>
+        <a href="#" class="yt-btn" target="_blank">Video 8</a>
+        <a href="#" class="yt-btn" target="_blank">Video 9</a>
+        <a href="#" class="yt-btn" target="_blank">Video 10</a>
+        <a href="#" class="yt-btn" target="_blank">Video 11</a>
+        <a href="#" class="yt-btn" target="_blank">Video 12</a>
+        <a href="#" class="yt-btn" target="_blank">Video 13</a>
+        <a href="#" class="yt-btn" target="_blank">Video 14</a>
+        <a href="#" class="yt-btn" target="_blank">Video 15</a>
+        <a href="#" class="yt-btn" target="_blank">Video 16</a>
+    </div>
+</section>
+
+<section class="how-it-works">
+    <h2>How VIIcare Works</h2>
+    <div class="steps">
+        <div class="step-card">
+            <h3>1. Submit Form</h3>
+            <p>Fill in our Referral Form with your needs. <strong>Note: Those who wish to be listed as VIIcare agents should also use this form to apply.</strong></p>
+        </div>
+        <div class="step-card">
+            <h3>2. Match</h3>
+            <p>We use our network to find the best-trusted partner for your case.</p>
+        </div>
+        <div class="step-card">
+            <h3>3. Coordinate</h3>
+            <p>We bridge the connection and ensure service delivery is initiated.</p>
+        </div>
+    </div>
+</section>
+
+<section class="looking-for">
+    <h2 style="text-align:center; margin-bottom: 40px;">Our Partners & Solutions</h2>
+    <div class="grid-9">
+        <div class="service-card"><h4>1. Freelance Nurses</h4><p>Professional clinical care in your home.</p></div>
+        <div class="service-card"><h4>2. Home Maid Services</h4><p>Assistance with daily hygiene and patient comfort.</p></div>
+        <div class="service-card"><h4>3. Hospital Beds</h4><p>Medical-grade beds to improve patient mobility.</p></div>
+        <div class="service-card"><h4>4. Wound Care Solutions</h4><p>Specialized treatment to prevent infection.</p></div>
+        <div class="service-card"><h4>5. Pressure Mattresses</h4><p>Essential for preventing painful bedsores.</p></div>
+        <div class="service-card"><h4>6. Physiotherapy Equipment</h4><p>Tools to help restore strength and movement.</p></div>
+        <div class="service-card"><h4>7. Private Ambulance</h4><p>Safe, rapid medical transport for appointments or emergencies</p></div>
+        <div class="service-card"><h4>8. Financial Planner</h4><p>Caring for a bedridden patient can lead to significant financial strain. If managing these expenses becomes overwhelming, it is advisable to consult a financial planner for professional guidance. There are a number of Certified Financial Planner listed in our network.</p></div>
+        <div class="service-card"><h4>9. Business Advisory</h4><p>If your company is facing challenges during these difficult times or you want to start a new business, seeking professional guidance from a business advisory service can help you navigate the situation. There are a number of Business Advisory Firm listed in our network.</p></div>
+    </div>
+</section>
+
+<section class="form-section">
+    <h2>Connect With Us</h2>
+    <p>Whether you are a family in need or a partner looking to join our network, please fill in the form below and we will get back to you shortly.</p>
+    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdwC7lK6jNn1zV_W-7p9W8n6I8-7x6G-M1X5/viewform?embedded=true">Loading…</iframe>
+</section>
+
+<footer><p>&copy; 2026 VIIcare Solutions | By Lim Chee Sin</p></footer>
+
+</body>
+</html>
